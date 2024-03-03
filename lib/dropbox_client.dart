@@ -174,6 +174,13 @@ class Dropbox {
     return ret;
   }
 
+  /// delete file or folder
+  ///
+  /// path should start with /.
+  static Future delete(String path) async {
+    return await _channel.invokeMethod('delete', {'path': path});
+  }
+
   /// get current account information.
   ///
   /// if no user is logged in, this method returns null,

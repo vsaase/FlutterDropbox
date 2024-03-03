@@ -170,6 +170,7 @@ FlutterMethodChannel* channel;
       
   } else if ([@"unlink" isEqualToString:call.method]) {
       [DBClientsManager unlinkAndResetClients];
+      result(@(TRUE));
       
   } else if ([@"getTemporaryLink" isEqualToString:call.method]) {
       DBUserClient *client = [DBClientsManager authorizedClient];
@@ -301,6 +302,35 @@ FlutterMethodChannel* channel;
               [channel invokeMethod:@"progress" arguments:@[key, @(totalBytesDownloaded), @(totalBytesExpectedToDownload)]];
 
       }];
+  } else if ([@"delete" isEqualToString:call.method]) {
+
+      NSString *path = call.arguments[@"path"];
+      DBUserClient *client = [DBClientsManager authorizedClient];
+
+      [[client.filesRoutes delete_:path]
+        setResponseBlock:^(DBFILESMetadata *deleteResult, DBFILESDeleteError *routeError, DBRequestError *networkError) {
+            if (deleteResult) {
+                NSLog(@"%@\n", deleteResult);
+                result(@(TRUE));
+            } else {
+                // Error is with the route specifically (status code 409)
+                if (routeError) {
+                    if ([routeError isPathLookup]) {
+                        // Can safely access this field
+                        DBFILESLookupError *pathLookup = routeError.pathLookup;
+                        NSLog(@"%@\n", pathLookup);
+                    } else if ([routeError isPathWrite]) {
+                        DBFILESWriteError *pathWrite = routeError.pathWrite;
+                        NSLog(@"%@\n", pathWrite);
+
+                        // This would cause a runtime error
+                        // DBFILESLookupError *pathLookup = routeError.pathLookup;
+                    }
+                }
+                NSLog(@"%@\n%@\n", routeError, networkError);
+                result(@(FALSE));
+            }
+        }];
   } else {
       NSLog(@"%@", call.method);
       NSLog(@"%@", call.arguments);
